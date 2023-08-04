@@ -1,14 +1,11 @@
 
 
-# An Unbiased Transformer Source Code Learning with Semantic Vulnerability Graph
+# DevSecLLM: Repairing Obfuscated Code Vulnerabilities using Reinforcement Learning from Human Feedback 
 
-This code provides the implementation of *RoBERTa-PFGCN* as described in out paper, a method to generate Graph of 
-Program dubbed SVG with our novel Poacher Flow Edges. We use RoBERTa to generate embeddings and GCN for vulnerability detection and classification.
+The emergence of transformer-based Large Language Models (LLMs) has drastically reshaped the domain of code development. The proliferation of automated tools that expedite the creation of code snippets has streamlined developers' workflows. However, this enhanced accessibility introduces escalated security challenges within the field of software development. In open-source solutions and code-generation systems, functionality is often given precedence over security, leading to the potential manifestation of security vulnerabilities. The situation is further exacerbated when adversaries harness the power of LLMs, capable of generating obfuscated codes that conceal embedded vulnerabilities. These tactics unintentionally grant malicious codes unrestricted access to critical system functionalities. The predicament is worsened due to a widespread deficiency in security literacy among developers. This research introduces an innovative method that harnesses the capabilities of Large Language Models, integrated with human feedback, alongside a unique instruct-based dataset, for detecting code vulnerabilities within obfuscated code. This approach not only identifies vulnerabilities but also facilitates code repair for their remediation. Moreover, it offers developers comprehensive descriptions to enrich their understanding of the identified security deficiencies in software development. As a practical application, we demonstrate the efficacy of our system in identifying, repairing, and describing 5 zero-day and 30 N-day vulnerabilities from the source code of IoT operating systems.
 
 
-Graph construction            |  Graph neural networks with residual connection
-:-------------------------:|:-------------------------:
-![](https://github.com/pial08/SemVulDet/blob/main/figures/graph.png)  |  ![](https://github.com/pial08/SemVulDet/blob/main/figures/arch.png)
+
 
 
 #### Requirements
@@ -48,65 +45,55 @@ The following command should be used for training, testing and evaluation. Pleas
 Please run the following commands:
 
 ```shell
-cd code
+
 
 ./run.sh
 
 or,
 
-python run.py --output_dir=<output_directory> --model_type=roberta --tokenizer_name=microsoft/graphcodebert-base --model_name_or_path=microsoft/graphcodebert-base \
-	--do_eval --do_test --do_train --train_data_file=<training_data_directory> --eval_data_file=<eval_data_directory> --test_data_file=<test_data_directory> \
-	--block_size 400 --train_batch_size 512 --eval_batch_size 512 --max_grad_norm 1.0 --evaluate_during_training \
-	--gnn ReGCN --learning_rate 5e-4 --epoch 100 --hidden_size 512 --num_classes 2 --model_checkpoint <saved_directory> --num_GNN_layers 2 --format uni --window_size 5 \
-	--seed 123456 2>&1 | tee $logp/training_log.txt
+torchrun --nproc_per_node=4 --master_port=1234 train.py \
+    --model_name_or_path Salesforce/codegen2-3_7B \
+    --data_path ./andrew/instruct-repair-bigvul-train.json \
+    --output_dir results_codegen2_3_7_bigvul_repair_train \
+    --num_train_epochs 4 \
+    --per_device_train_batch_size 4 \
+    --per_device_eval_batch_size 1 \
+    --gradient_accumulation_steps 8 \
+    --evaluation_strategy "no" \
+    --gradient_checkpointing false \
+    --save_strategy "steps" \
+    --save_steps 2000 \
+    --save_total_limit 1 \
+    --learning_rate 2e-5 \
+    --weight_decay 0. \
+    --warmup_ratio 0.03 \
+    --fsdp "full_shard offload auto_wrap" \
+    --fsdp_transformer_layer_cls_to_wrap 'CodeGenBlock' \
+    --lr_scheduler_type "cosine" \
+    --logging_steps 1 \
+    --fp16 True
 
 ```
 
-### Shell file parameters explaination
-Here we explain some of the important parameters we used for our application. 
 
-| Parameters | Default Values | Values | Description |
-| :---:    | :---:   |:---:                | :---: |
-| `--loss` | `focal` | *focal* or *weight* | Change parameters based on the usage of focal loss or weighted loss |
-| `--graph`| `SVG`   | *SVG* or *AST* | Change parameters based on the graph generation method |
-| `--alpha`| `0.1`   | 0-1 | The number should be a floating point |
-| `--gamma`| `2.0`   | 0-INF | Floating value ranging from 0 to infinity. If the value is 0, effect os gamma is ignored |
 
 
 ### Datasets
-- Please download our [VulF](https://drive.google.com/drive/folders/1d00kfEX6k1MhpxJtuFv5JqtlQTJfg03N?usp=sharing) dataset VulF directory.
+- Please download our [InstructVul](https://drive.google.com/drive/folders/1A7vfAkImoX8yvZCeTtqZ_45aqF-r214K?usp=sharing) dataset VulF directory.
+
 
 - Our N-day and zero-day samples are also available in the previous link under *Testing* directory.
 - After downloading VulF dataset, please put it under the directory *data*.
 
 ### Reproducibility
-In order to use our pre-trained model, please download our model from [here](https://drive.google.com/drive/folders/1d00kfEX6k1MhpxJtuFv5JqtlQTJfg03N?usp=sharing) under the Saved Model directory. After downloading, please set the value of the parameter `--model_checkpoint` to local directory you saved the pre-trained model.
+In order to use our pre-trained model, please download our model from [here](https://drive.google.com/drive/folders/1A7vfAkImoX8yvZCeTtqZ_45aqF-r214K?usp=sharing) under the Saved Model directory. After downloading, please set the value of the parameter `--model_checkpoint` to local directory you saved the pre-trained model.
 
 ## Cite  
 Please cite the paper whenever our ReGVD is used to produce published results or incorporated into other software:
 
  
 
-## Cite  
-Please cite the paper whenever our work is used to produce published results or incorporated into other software:
 
- 
-
-    @inproceedings{islam2023unbiased,
-        author = {N. Islam and G. Parra and D. Manuel and E. Bou-Harb and P. Najafirad},
-        booktitle = {2023 IEEE 8th European Symposium on Security and Privacy (EuroS&P)},
-		title = {An Unbiased Transformer Source Code Learning with Semantic Vulnerability Graph},	
-        year = {2023},
-		volume = {},
-		issn = {},
-		pages = {144-159},
-		keywords = {},
-		doi = {10.1109/EuroSP57164.2023.00018},
-		url = {https://doi.ieeecomputersociety.org/10.1109/EuroSP57164.2023.00018},
-		publisher = {IEEE Computer Society},
-		address = {Los Alamitos, CA, USA},
-		month = {jul}
-    }
 
 		
 
